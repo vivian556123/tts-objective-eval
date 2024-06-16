@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio.transforms as trans
-# from .utils import UpstreamExpert
+from .utils import UpstreamExpert
 
 
 ''' Res2Conv1d + BatchNorm1d + ReLU
@@ -196,6 +196,7 @@ class ECAPA_TDNN(nn.Module):
                 torch.hub._validate_not_a_forked_repo=lambda a,b,c: True
                 self.feature_extract = torch.hub.load('s3prl/s3prl', feat_type)
             else:
+                print("config_path", config_path)
                 self.feature_extract = UpstreamExpert(config_path)
             if len(self.feature_extract.model.encoder.layers) == 24 and hasattr(self.feature_extract.model.encoder.layers[23].self_attn, "fp32_attention"):
                 self.feature_extract.model.encoder.layers[23].self_attn.fp32_attention = False
@@ -288,6 +289,7 @@ class ECAPA_TDNN(nn.Module):
 
 
 def ECAPA_TDNN_SMALL(feat_dim, emb_dim=256, feat_type='fbank', sr=16000, feature_selection="hidden_states", update_extract=False, config_path=None):
+    print("feat_dim", feat_dim, "emb_dim", emb_dim, "feat_type", feat_type, "sr", sr, "feature_selection", feature_selection, "update_extract", update_extract)
     return ECAPA_TDNN(feat_dim=feat_dim, channels=512, emb_dim=emb_dim,
                       feat_type=feat_type, sr=sr, feature_selection=feature_selection, update_extract=update_extract, config_path=config_path)
 

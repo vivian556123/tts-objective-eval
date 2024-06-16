@@ -4,3 +4,5 @@ modelscope
 librosa
 torch
 torchaudio
+zhon
+jiwer

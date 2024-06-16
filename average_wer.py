@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+import os
 
 infile=sys.argv[1]
 outfile=sys.argv[2]
@@ -38,3 +39,7 @@ fout.write(f"WER: {wer}%\n")
 fout.close()
 
 print(f"WER: {wer}%\n")
+
+
+with open(os.path.join(os.path.dirname(outfile),"total_results"),'w') as total_result:
+    total_result.write(f"WER: {wer}%\n")
