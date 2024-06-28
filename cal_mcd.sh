@@ -1,7 +1,9 @@
 set -x
 
+conda activate eval
 meta_lst=$1
 output_dir=$2
+mode=$3
 
 wav_wav_text=$output_dir/wav_res_ref_text
 score_file=$output_dir/wav_res_ref_text.wer
@@ -10,7 +12,8 @@ score_file=$output_dir/wav_res_ref_text.wer
 
 out_score_file=$output_dir/mcd_results
 
-python_command="srun -p a10,4090 --gres=gpu:1 --mem 40G --qos qlong -c 2 python"
+# python_command="srun -p a10,4090 --gres=gpu:1 --mem 40G --qos qlong -c 2 python"
+python_command="python"
 
-$python_command calculate_mcd.py $output_dir/wav_res_ref_text  --scores $out_score_file\_score 
+$python_command calculate_mcd.py $output_dir/wav_res_ref_text  --scores $out_score_file\_score --mode $mode
 

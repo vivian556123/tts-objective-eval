@@ -294,6 +294,13 @@ if __name__ == '__main__':
 
     tsv1 = []
     tsv2 = []
+    print("pair", args.pair)
+    if "noise-robust-tts" in args.pair:
+        sim_reconstructed = True
+        print("Noise robust tts task with LibriTTS dataset, calculate reconstructed similarity, compared with prompt after vocoder")
+    else: 
+        sim_reconstructed = False
+        print("original similarity, compared with ground truth prompt")
     for line in lines:
         e = line.strip().split('\t')
         if len(e) == 4:
@@ -303,6 +310,9 @@ if __name__ == '__main__':
         else:
             part1, part2 = line.strip().split('\t')[:2]
         # print("part1", part1, "part2", part2)
+        # print(part2, os.path.basename(part2))
+        if sim_reconstructed :
+            part2 = os.path.join("/exp/leying.zhang/noise-robust-tts/test_after_vocoder/clean", os.path.basename(part2))
         tsv1.append(part1)
         tsv2.append(part2)
 
@@ -317,6 +327,7 @@ if __name__ == '__main__':
         if not os.path.exists(t1_path) or not os.path.exists(t2_path):
             print("t1_path", t1_path, "t2_path", t2_path, "not exists")
             continue
+        # print("t1_path", t1_path, "t2_path", t2_path)
         try:
             sim, model = verification(args.model_name, t1_path, t2_path, use_gpu=True, checkpoint=args.checkpoint, wav1_start_sr=args.wav1_start_sr, wav2_start_sr=args.wav2_start_sr, wav1_end_sr=args.wav1_end_sr, wav2_end_sr=args.wav2_end_sr, model=model, wav2_cut_wav1=args.wav2_cut_wav1, device=args.device)
         except Exception as e:
@@ -334,6 +345,6 @@ if __name__ == '__main__':
     scores_w.flush()
     # print(f'avg score: {round(sum(score_list)/len(score_list), 3)}')
     
-    with open(os.path.join(os.path.dirname(args.scores),"total_results"),'w') as total_result:
-        total_result.write(f"SIM: {sum(score_list)/len(score_list)} \n")
+    with open(os.path.join(os.path.dirname(args.scores),"total_results"),'a') as total_result:
+        total_result.write(f"SIM: {sum(score_list)/len(score_list)}  reconstructed SIM {sim_reconstructed} \n")
 

@@ -41,5 +41,5 @@ fout.close()
 print(f"WER: {wer}%\n")
 
 
-with open(os.path.join(os.path.dirname(outfile),"total_results"),'w') as total_result:
-    total_result.write(f"WER: {wer}%\n")
+with open(os.path.join(os.path.dirname(outfile),"total_results"),'a') as total_result:
+    total_result.write(f"WER: {wer}\n")

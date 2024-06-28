@@ -26,7 +26,8 @@ def cal_mcd(mcd_plain_toolbox, mcd_dtw_toolbox, mcd_dtw_sl_toolbox,  wav1, wav2)
 if __name__ == '__main__': 
     parser = argparse.ArgumentParser()
     parser.add_argument('pair')
-    parser.add_argument('--scores')
+    parser.add_argument('--scores', type=str)
+    parser.add_argument('--mode', default="clean", type=str)
     args = parser.parse_args()
 
     f = open(args.pair)
@@ -59,9 +60,21 @@ if __name__ == '__main__':
     dtw_sl_mcd_list = []
     for t1, t2 in tqdm.tqdm(zip(tsv1, tsv2), total=len(tsv1)):
         t1_path = t1.strip()
-        t2_path = t2.strip()
+        t2_path = os.path.join(os.path.dirname(t2.strip()), os.path.basename(t1.strip()))
+        if args.mode == "noise":
+            t2_path = os.path.join("/exp/leying.zhang/noise-robust-tts/test-degraded-gt", os.path.basename(t1_path.replace(".wav", "_noise.wav")))
+        elif args.mode == "reverb":
+            t2_path = os.path.join("/exp/leying.zhang/noise-robust-tts/test-degraded-gt", os.path.basename(t1_path.replace(".wav", "_rir.wav")))
+        elif args.mode == "interference":
+            t2_path = os.path.join("/exp/leying.zhang/noise-robust-tts/test-degraded-gt", os.path.basename(t1_path.replace(".wav", "_interferencespk.wav")))
+        else: 
+            filename = os.path.basename(t1_path)
+            subdir = filename.split("_")[0]
+            subsubdir = filename.split("_")[1]
+            t2_path = os.path.join("/data/processed/LibriTTS_20ms_16k/textgrid/test-clean", subdir, subsubdir, filename)
+            
         if not os.path.exists(t1_path) or not os.path.exists(t2_path):
-            print("t1_path", t1_path, "t2_path", t2_path, "not exists")
+            print("t1_path", t1_path, "t2_path", t2_path, " in mode ", args.mode, " not exist")
             continue
         try:
             plain_mcd_value, dtw_mcd_value, dtw_sl_mcd_value = cal_mcd(mcd_plain_toolbox, mcd_dtw_toolbox, mcd_dtw_sl_toolbox,  t1_path, t2_path)
@@ -74,13 +87,14 @@ if __name__ == '__main__':
         dtw_mcd_list.append(dtw_mcd_value)
         dtw_sl_mcd_list.append(dtw_sl_mcd_value)
         scores_w.flush()
-    scores_w.write(f'avg plain mcd score between generated speech and grount truth: {sum(plain_mcd_list)/len(plain_mcd_list)}')
-    scores_w.write(f'avg dtw mcd score between generated speech and grount truth: {sum(dtw_mcd_list)/len(dtw_mcd_list)}')
-    scores_w.write(f'avg dtw sl mcd score between generated speech and grount truth: {sum(dtw_sl_mcd_list)/len(dtw_sl_mcd_list)}')
+    scores_w.write(f'MCD calculation mode: {args.mode}\n')
+    scores_w.write(f'avg plain mcd score between generated speech and grount truth: {sum(plain_mcd_list)/len(plain_mcd_list)}\n')
+    scores_w.write(f'avg dtw mcd score between generated speech and grount truth: {sum(dtw_mcd_list)/len(dtw_mcd_list)}\n')
+    scores_w.write(f'avg dtw sl mcd score between generated speech and grount truth: {sum(dtw_sl_mcd_list)/len(dtw_sl_mcd_list)}\n')
     print(f'avg mcd score between generated speech and grount truth: {sum(plain_mcd_list)/len(plain_mcd_list)}')
     print(f'avg mcd score between generated speech and grount truth: {sum(dtw_mcd_list)/len(dtw_mcd_list)}')
     print(f'avg mcd score between generated speech and grount truth: {sum(dtw_sl_mcd_list)/len(dtw_sl_mcd_list)}')
     scores_w.flush()
     
-with open(os.path.join(os.path.dirname(args.scores),"total_results"),'w') as total_result:
-    total_result.write(f"MCD PLAIN: {sum(plain_mcd_list)/len(plain_mcd_list)} DTW: {sum(dtw_mcd_list)/len(dtw_mcd_list)} DTW_SL: {sum(dtw_sl_mcd_list)/len(dtw_sl_mcd_list)}  \n")
+with open(os.path.join(os.path.dirname(args.scores),"total_results"),'a') as total_result:
+    total_result.write(f"mode: {args.mode} MCD PLAIN: {sum(plain_mcd_list)/len(plain_mcd_list)} DTW: {sum(dtw_mcd_list)/len(dtw_mcd_list)} DTW_SL: {sum(dtw_sl_mcd_list)/len(dtw_sl_mcd_list)}  \n")
