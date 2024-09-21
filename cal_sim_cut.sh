@@ -20,10 +20,7 @@ out_score_file=$output_dir/sim_results
 # python_command="srun -p a10,4090 --gres=gpu:1 --mem 40G --qos qlong -c 2 python"
 python_command="python"
 
-
-
-if [ "$meta_lst" == "/home/leying.zhang/code/noise-robust-tts/LibriTTS-metadata/libritts_test.csv" ]; then
-  $python_command verification_pair_list_v2.py $output_dir/wav_res_ref_text \
+$python_command verification_pair_list_v2.py $output_dir/wav_res_ref_text \
     --model_name wavlm_large \
     --checkpoint $checkpoint_path \
     --scores $out_score_file\_score \
@@ -31,18 +28,5 @@ if [ "$meta_lst" == "/home/leying.zhang/code/noise-robust-tts/LibriTTS-metadata/
     --wav2_start_sr 0 \
     --wav1_end_sr -1 \
     --wav2_end_sr -1 \
-    --device cuda \
-    --libritts_sim_reconstructed 
-    # --libritts_24k_gt \
-    # --libritts_sim_reconstructed 
-else
-  $python_command verification_pair_list_v2.py $output_dir/wav_res_ref_text \
-    --model_name wavlm_large \
-    --checkpoint $checkpoint_path \
-    --scores $out_score_file\_score \
-    --wav1_start_sr 0 \
-    --wav2_start_sr 0 \
-    --wav1_end_sr -1 \
-    --wav2_end_sr -1 \
+    --cut_prompt \
     --device cuda 
-fi

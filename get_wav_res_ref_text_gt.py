@@ -2,8 +2,9 @@ import sys, os
 from tqdm import tqdm
 
 metalst = sys.argv[1]
-wav_dir = sys.argv[2]
+degrade_type = sys.argv[2]
 wav_res_ref_text = sys.argv[3]
+
 
     
 
@@ -17,14 +18,12 @@ with open(wav_res_ref_text, 'w') as f_w:
         # print("line", line, line.strip().split('\t'))
         if len(line.strip().split('\t')) == 3:
             utt, prompt_wav, infer_text = line.strip().split('\t')
-            if metalst == "/home/leying.zhang/code/noise-robust-tts/LibriTTS-metadata/VCTK_TUT_testset.csv":
-                utt = utt.replace(".wav","_16k.wav")
             utt = os.path.basename(utt)
         else: 
             print("Error in processing line", line)
-        
-        if not os.path.exists(os.path.join(wav_dir, utt)):
-            print("os.path.join(wav_dir, utt )", os.path.join(wav_dir, utt ))
+        utt_path = os.path.join("/exp/leying.zhang/noise-robust-tts/vctk_test/noisy_TUT_testset_wav", utt.replace(".wav", "_16k.wav"))
+        if not os.path.exists(utt_path):
+            print("path for waveform does not exist",  utt_path)
             # continue
 
         if not os.path.isabs(prompt_wav):
@@ -33,7 +32,7 @@ with open(wav_res_ref_text, 'w') as f_w:
         # if not os.path.isabs(infer_wav):
         #     infer_wav = os.path.join(os.path.dirname(metalst), infer_wav)
 
-        out_line = '\t'.join([os.path.join(wav_dir, utt ), prompt_wav, infer_text])
+        out_line = '\t'.join([utt_path, prompt_wav, infer_text])
         f_w.write(out_line + '\n')
 
 print("successfully write pairs into ", wav_res_ref_text)

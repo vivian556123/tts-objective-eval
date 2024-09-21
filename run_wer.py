@@ -13,7 +13,7 @@ from funasr import AutoModel
 from datasets import load_dataset
 
 
-punctuation_all = punctuation + string.punctuation
+punctuation_all = punctuation + string.punctuation + '.,!?'
 
 wav_res_text_path = sys.argv[1]
 res_path = sys.argv[2]
@@ -39,9 +39,13 @@ def process_one(hypo, truth):
             continue
         truth = truth.replace(x, '')
         hypo = hypo.replace(x, '')
-
+    truth = truth.replace('[laughter]','')
+    hypo = hypo.replace('[laughter]','')
+    
     truth = truth.replace('  ', ' ')
     hypo = hypo.replace('  ', ' ')
+    truth = truth.lower()
+    hypo = hypo.lower()
 
     if lang == "zh":
         truth = " ".join([x for x in truth])
@@ -60,7 +64,7 @@ def process_one(hypo, truth):
     inse = measures["insertions"] / len(ref_list)
     
     # print("hyp", hypo,  "truth", truth, "WER", wer, "subs", subs, "dele", dele, "inse", inse)
-    return (raw_truth, raw_hypo, wer, subs, dele, inse)
+    return (truth, hypo, wer, subs, dele, inse)
 
 
 def run_asr(wav_res_text_path, res_path):

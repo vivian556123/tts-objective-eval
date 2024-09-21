@@ -67,6 +67,12 @@ if __name__ == '__main__':
             t2_path = os.path.join("/exp/leying.zhang/noise-robust-tts/test-degraded-gt", os.path.basename(t1_path.replace(".wav", "_rir.wav")))
         elif args.mode == "interference":
             t2_path = os.path.join("/exp/leying.zhang/noise-robust-tts/test-degraded-gt", os.path.basename(t1_path.replace(".wav", "_interferencespk.wav")))
+        elif args.mode == "vctk":
+            t2_path = os.path.join("/exp/leying.zhang/noise-robust-tts/vctk_test/clean_testset_wav", os.path.basename(t1_path))
+        elif args.mode == "vctk-noisy":
+            t2_path = os.path.join("/exp/leying.zhang/noise-robust-tts/vctk_test/noisy_TUT_testset_wav", os.path.basename(t1_path))
+        elif args.mode == "soundstorm":
+            t2_path = os.path.join("/exp/leying.zhang/Fisher-dataset-test/2spk_soundstorm_simu/ground_truth", os.path.basename(t1_path))
         else: 
             filename = os.path.basename(t1_path)
             subdir = filename.split("_")[0]

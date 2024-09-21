@@ -13,23 +13,19 @@ pip3 install -r requirements.txt
 The word error rate (WER) and speaker similarity (SIM) metrics are adopted for objective evaluation. 
 * For WER, we employ [Whisper-large-v3](https://huggingface.co/openai/whisper-large-v3) and [Paraformer-zh](https://huggingface.co/funasr/paraformer-zh) as the automatic speech recognition (ASR) engines for English and Mandarin, respectively.
 * For SIM, we use WavLM-large fine-tuned on the speaker verification task ([model link](https://drive.google.com/file/d/1-aE1NfzpRCLxA4GUxX9ITI3F9LlbtEGP/view)) to obtain speaker embeddings used to calculate the cosine similarity of speech samples of each test utterance against reference clips.
+* For MCD, we use py_mcd
 
-## Dataset
-You can download the test set for all tasks from [this link](https://drive.google.com/file/d/1GlSjVfSHkW3-leKKBlfrjuuTGqQ_xaLP/edit). 
-The test set is mainly organized using the method of meta file. The meaning of each line in the meta file: filename | the text of the prompt | the audio of the prompt | the text to be synthesized | the ground truth counterpart corresponding to the text to be synthesized （if exists）. For different tasks, we adopt different meta files:
-* Zero-shot text-to-speech (TTS):
-  * EN: seed-tts-eval/en/meta.lst
-  * ZH: seed-tts-eval/zh/meta.lst
-  * ZH (hard case): seed-tts-eval/zh/hardcase.lst
-* Zero-shot voice conversion (VC):
-  * EN: seed-tts-eval/en/non_para_reconstruct_meta.lst
-  * ZH: seed-tts-eval/zh/non_para_reconstruct_meta.lst
+## Data configuration Preparation
+Meta-data format: ground_truth_path'\t'prompt_path'\t'ground_truth_text
 
-## Code
-We also release the evaluation code for both metrics:
+for example /home/leying.zhang/code/noise-robust-tts/LibriTTS-metadata/libritts_test.csv
+
+## Utilization
 ```
 # WER
 bash cal_wer.sh {the path of the meta file} {the directory of synthesized audio} {language: zh or en}
 # SIM
-bash cal_sim.sh {the path of the meta file} {the directory of synthesized audio} {path/wavlm_large_finetune.pth}
+bash cal_sim.sh {the path of the meta file} {the directory of synthesized audio} {path/wavlm_large_finetune.pth: /exp/leying.zhang/pretrained_models/wavlm_large_finetune.pth }
+# MCD
+bash cal_mcd.sh {the path of the meta file} {the directory of synthesized audio} {mode: clean}
 ```

@@ -11,12 +11,15 @@ import torch.nn.functional as F
 import torchaudio.transforms as trans
 import sys
 from pathlib import Path
-import numpy as np
+
 
 # Get the absolute path of the current file's directory
-current_dir = Path(__file__).resolve().parent
+# current_dir = Path(__file__).resolve().parent
+# current_dir = "/home/leying.zhang/code/seed-tts-eval/thirdparty/UniSpeech"
 # Get the parent directory
-parent_dir = current_dir.parent
+# parent_dir = current_dir.parent
+parent_dir = "/home/leying.zhang/code/seed-tts-eval/thirdparty/UniSpeech/downstreams"
+
 # Add the parent directory to sys.path
 sys.path.append(str(parent_dir))
 from speaker_verification.models.ecapa_tdnn import ECAPA_TDNN_SMALL
@@ -207,12 +210,11 @@ def init_model(model_name, checkpoint=None):
     return model
 
 
-def verification_ly(model_name,  wav1, wav2, use_gpu=True, checkpoint=None, wav1_start_sr=0, wav2_start_sr=0, wav1_end_sr=-1, wav2_end_sr=-1, model=None, wav2_cut_wav1=False, cut_prompt = False, device="cuda:0"):
+def verification(model_name,  wav1, wav2, use_gpu=True, checkpoint=None, wav1_start_sr=0, wav2_start_sr=0, wav1_end_sr=-1, wav2_end_sr=-1, model=None, wav2_cut_wav1=False, device="cuda:0"):
 
     assert model_name in MODEL_LIST, 'The model_name should be in {}'.format(MODEL_LIST)
     model = init_model(model_name, checkpoint) if model is None else model
 
-    wav1_path = wav1
     wav1, sr1 = librosa.load(wav1, sr=None, mono=False)
 
     # wav1, sr1 = sf.read(wav1)
@@ -226,20 +228,12 @@ def verification_ly(model_name,  wav1, wav2, use_gpu=True, checkpoint=None, wav1
     wav1 = torch.from_numpy(wav1).unsqueeze(0).float()
     wav2 = torch.from_numpy(wav2).unsqueeze(0).float()
     resample1 = Resample(orig_freq=sr1, new_freq=16000)
-    resample2 = Resample(orig_freq=sr2, new_freq=16000)    
+    resample2 = Resample(orig_freq=sr2, new_freq=16000)
     wav1 = resample1(wav1)
     wav2 = resample2(wav2)
-    
-    
     # print(f'origin wav1 sr: {wav1.shape}, wav2 sr: {wav2.shape}')
     if wav2_cut_wav1:
         wav2 = wav2[...,wav1.shape[-1]:]
-    elif cut_prompt :
-        length_list = np.load(os.path.join("/exp/leying.zhang/Fisher-dataset-test/2spk_soundstorm_simu/gt_oracle_length",os.path.basename(wav1_path).replace(".wav",".npy")))
-        print(length_list)
-        wav1_first = wav1[...,:int(length_list[0]*16000)]
-        wav1_second = wav1[...,int((length_list[0]+length_list[1])*16000):int((length_list[0]+length_list[1]+length_list[2])*16000)]
-        wav1 = torch.cat([wav1_first,wav1_second],dim=-1)
     else:
         wav1 = wav1[...,wav1_start_sr:wav1_end_sr if wav1_end_sr > 0 else wav1.shape[-1]]
         wav2 = wav2[...,wav2_start_sr:wav2_end_sr if wav2_end_sr > 0 else wav2.shape[-1]]
@@ -285,89 +279,69 @@ def extract_embedding(model_name,  wav1, use_gpu=True, checkpoint=None, wav1_sta
 
 if __name__ == '__main__': 
     parser = argparse.ArgumentParser()
-    parser.add_argument('pair')
-    parser.add_argument('--model_name')
-    parser.add_argument('--checkpoint')
-    parser.add_argument('--scores')
-    parser.add_argument('--wav1_start_sr', type=int)
-    parser.add_argument('--wav2_start_sr', type=int)
-    parser.add_argument('--wav1_end_sr', type=int)
-    parser.add_argument('--wav2_end_sr', type=int)
+    parser.add_argument('--pair',type=str, default="/home/leying.zhang/code/noise-robust-tts/LibriTTS-metadata/robust-test_evaluation_pairs.csv")
+    parser.add_argument('--target_dir', type=str)
+    parser.add_argument('--model_name', type=str, default="wavlm_large")
+    parser.add_argument('--checkpoint', type=str, default="/exp/leying.zhang/pretrained_models/wavlm_large_finetune.pth")
+    parser.add_argument('--scores', type=str, default="sim_interference_after_sep_score")
+    parser.add_argument('--wav1_start_sr', type=int,default=0)
+    parser.add_argument('--wav2_start_sr', type=int,default=0)
+    parser.add_argument('--wav1_end_sr', type=int,default=-1)
+    parser.add_argument('--wav2_end_sr', type=int,default=-1)
     parser.add_argument('--wav2_cut_wav1', type=bool, default=False)
     parser.add_argument('--device', default="cuda")
-    parser.add_argument('--libritts_sim_reconstructed', action="store_true")
-    parser.add_argument('--cut_prompt', action="store_true")
-    parser.add_argument('--libritts_24k_gt', action="store_true")
-
-    
-    
     args = parser.parse_args()
 
+    target_dir = args.target_dir
     f = open(args.pair)
     lines = f.readlines()
     f.close()
 
-    tsv1 = []
-    tsv2 = []
     print("pair", args.pair)
-    # if "libritts_test.csv" in args.pair:
-    #     sim_reconstructed = True
-    #     print("Noise robust tts task with LibriTTS dataset, calculate reconstructed similarity, compared with prompt after vocoder")
-    # else: 
-    #     sim_reconstructed = False
-    #     print("original similarity, compared with ground truth prompt")
+    
+    calculate_sim_list = []
     for line in lines:
         e = line.strip().split('\t')
-        if len(e) == 4:
-            part1, _, _, part2 = line.strip().split('\t')
-        elif len(e) == 3:
-            part1, part2, _ = line.strip().split('\t')
-        else:
-            part1, part2 = line.strip().split('\t')[:2]
-        # print("part1", part1, "part2", part2)
-        # print(part2, os.path.basename(part2))
-        if args.libritts_sim_reconstructed :
-            part2 = os.path.join("/exp/leying.zhang/noise-robust-tts/test_after_vocoder/clean", os.path.basename(part2))
-            # part2 = part2.replace("prompt_spk1","prompt_spk1_after_vocoder")
-        if args.libritts_24k_gt:
-            part2 = part2.replace("/data/processed/LibriTTS_20ms_16k/textgrid/test-clean","/data/lib/LIBRITTS/LibriTTS/test-clean")
-        tsv1.append(part1)
-        tsv2.append(part2)
+        prompt = e[0]
+        target = e[1]
+        interference = e[4]
+        calculate_sim_list.append([prompt, target, interference])
 
-    scores_w = open(args.scores, 'w')
-    assert len(tsv1) == len(tsv2)
+    scores_w = open(os.path.join(args.target_dir, args.scores), 'w')
 
     model = None
     score_list = []
-    for t1, t2 in tqdm.tqdm(zip(tsv1, tsv2), total=len(tsv1)):
-        t1_path = t1.strip()
-        t2_path = t2.strip()
-        if not os.path.exists(t1_path) or not os.path.exists(t2_path):
-            print("t1_path", t1_path, "t2_path", t2_path, "not exists")
+    for  i in tqdm.tqdm(range(len(calculate_sim_list))):
+        prompt = calculate_sim_list[i][0]
+        target = calculate_sim_list[i][1]
+        interference = calculate_sim_list[i][2]
+        
+        target_1 = os.path.join(target_dir, os.path.basename(target))
+        target_1 = os.path.join(target_dir, 'logdir/output.1/wavs', "1", os.path.basename(target))
+        target_2 = os.path.join(target_dir, 'logdir/output.1/wavs', "2", os.path.basename(target))
+    
+        try:
+            sim_prompt_t1, model = verification(args.model_name, prompt, target_1, use_gpu=True, checkpoint=args.checkpoint, wav1_start_sr=args.wav1_start_sr, wav2_start_sr=args.wav2_start_sr, wav1_end_sr=args.wav1_end_sr, wav2_end_sr=args.wav2_end_sr, model=model, wav2_cut_wav1=args.wav2_cut_wav1, device=args.device)
+            sim_prompt_t2, model = verification(args.model_name, prompt, target_2, use_gpu=True, checkpoint=args.checkpoint, wav1_start_sr=args.wav1_start_sr, wav2_start_sr=args.wav2_start_sr, wav1_end_sr=args.wav1_end_sr, wav2_end_sr=args.wav2_end_sr, model=model, wav2_cut_wav1=args.wav2_cut_wav1, device=args.device)
+            sim_interference_t1, model = verification(args.model_name, interference, target_1, use_gpu=True, checkpoint=args.checkpoint, wav1_start_sr=args.wav1_start_sr, wav2_start_sr=args.wav2_start_sr, wav1_end_sr=args.wav1_end_sr, wav2_end_sr=args.wav2_end_sr, model=model, wav2_cut_wav1=args.wav2_cut_wav1, device=args.device)
+            sim_interference_t2, model = verification(args.model_name, interference, target_2, use_gpu=True, checkpoint=args.checkpoint, wav1_start_sr=args.wav1_start_sr, wav2_start_sr=args.wav2_start_sr, wav1_end_sr=args.wav1_end_sr, wav2_end_sr=args.wav2_end_sr, model=model, wav2_cut_wav1=args.wav2_cut_wav1, device=args.device)
+        except Exception as e:
+            print(str(e))
             continue
-        # print("t1_path", t1_path, "t2_path", t2_path)
-
-        sim, model = verification_ly(args.model_name, t1_path, t2_path, use_gpu=True, checkpoint=args.checkpoint, 
-                                      wav1_start_sr=args.wav1_start_sr, wav2_start_sr=args.wav2_start_sr, 
-                                      wav1_end_sr=args.wav1_end_sr, wav2_end_sr=args.wav2_end_sr, 
-                                      model=model, wav2_cut_wav1=args.wav2_cut_wav1, device=args.device,
-                                      cut_prompt=args.cut_prompt)
+        sim_prompt_t1 = sim_prompt_t1.detach().cpu().numpy()[0]
+        sim_prompt_t2 = sim_prompt_t2.detach().cpu().numpy()[0]
+        sim_interference_t1 = sim_interference_t1.detach().cpu().numpy()[0]
+        sim_interference_t2 = sim_interference_t2.detach().cpu().numpy()[0]      
+        write_content = '\t'.join([str(sim_prompt_t1),str(sim_prompt_t2),str(sim_interference_t1),str(sim_interference_t2)])+'\n'
+        
+        # try:
+        #     sim_prompt_t1, model = verification(args.model_name, interference, target_1, use_gpu=True, checkpoint=args.checkpoint, wav1_start_sr=args.wav1_start_sr, wav2_start_sr=args.wav2_start_sr, wav1_end_sr=args.wav1_end_sr, wav2_end_sr=args.wav2_end_sr, model=model, wav2_cut_wav1=args.wav2_cut_wav1, device=args.device)
         # except Exception as e:
         #     print(str(e))
         #     continue
-
-        if sim is None:
-            continue
-        scores_w.write(f'{t1_path}_{args.wav1_start_sr}_{args.wav1_end_sr}\t{t2_path}_{args.wav2_start_sr}_{args.wav2_end_sr}\t{sim.cpu().item()}\n')
-        # print(f'{t1_path}_{args.wav1_start_sr}_{args.wav1_end_sr}\t{t2_path}_{args.wav2_start_sr}_{args.wav2_end_sr}\t{sim.cpu().item()}')
-        score_list.append(sim.cpu().item())
+        # sim_prompt_t1 = sim_prompt_t1.detach().cpu().numpy()[0]
+        # write_content = str(sim_prompt_t1)
+        
+        scores_w.write(os.path.basename(target) + '\t' + write_content + '\n')
         scores_w.flush()
-    scores_w.write(f'avg sim score between generated speech and it\'s corresponding prompt: {sum(score_list)/len(score_list)}')
-    exp_path = os.path.dirname(args.scores)
-    print(f'{exp_path } avg sim score between generated speech and it\'s corresponding prompt: {sum(score_list)/len(score_list)}')
-    scores_w.flush()
-    # print(f'avg score: {round(sum(score_list)/len(score_list), 3)}')
     
-    with open(os.path.join(os.path.dirname(args.scores),"total_results"),'a') as total_result:
-        total_result.write(f"SIM: {sum(score_list)/len(score_list)}  reconstructed SIM {args.libritts_sim_reconstructed} cut_prompt {args.cut_prompt} \n")
-
