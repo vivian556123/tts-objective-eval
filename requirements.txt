@@ -1,0 +1,13 @@
+funasr
+zhconv
+modelscope
+librosa
+torch
+torchaudio
+zhon
+jiwer
+fire
+pymcd
+pandas
+pystoi
+pesq
