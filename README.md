@@ -45,8 +45,5 @@ bash cal_recons_metrics.sh {--meta_lst the path of the meta file} {--synthesized
 
 ## Acknowledgement
 
-This repo is inspired and borrowed many codes from 
-1. [Seed-TTS-Eval](https://github.com/BytedanceSpeech/seed-tts-eval)
-2. [UniSpeech](https://github.com/microsoft/UniSpeech)
+This repo is inspired by and borrows many codes from  [Seed-TTS-Eval](https://github.com/BytedanceSpeech/seed-tts-eval) and [UniSpeech](https://github.com/microsoft/UniSpeech). Thank you to the authors of these projects for their contributions!
 
-Thank you !!!
