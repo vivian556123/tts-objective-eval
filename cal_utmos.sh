@@ -6,7 +6,7 @@ synthesized_dir="default_synthesized_dir"
 generated_wav_suffix=".wav"
 prompt_dir="default_prompt_dir"
 ground_truth_dir="default_ground_truth_dir"
-checkpoint_path="/data/v-leyizhang/pretrained_model/wavlm_large_finetune.pth"
+checkpoint_path="/exp/leying.zhang/pretrained_models/wavlm_large_finetune.pth"
 
 # Parse named arguments
 while [[ $# -gt 0 ]]; do
@@ -44,20 +44,15 @@ done
 
 # Define file paths based on the arguments
 wav_res_ref="$synthesized_dir/wav_res_ref_text"
-out_score_file="$synthesized_dir/sim_results_score"
+out_score_file="$synthesized_dir/utmos_results_score"
 
 # Get the working directory
 python_command=python
 $python_command get_wav_res_ref_text.py $meta_lst $synthesized_dir $ground_truth_dir $prompt_dir $wav_res_ref $generated_wav_suffix
 
 workdir=$(cd "$(dirname "$0")"; pwd)
-cd $workdir/thirdparty/UniSpeech/downstreams/speaker_verification/
-$python_command verification_pair_list_v2.py $wav_res_ref \
-    --model_name wavlm_large \
-    --checkpoint $checkpoint_path \
-    --scores $out_score_file \
-    --wav1_start_sr 0 \
-    --wav2_start_sr 0 \
-    --wav1_end_sr -1 \
-    --wav2_end_sr -1 \
-    --device cuda 
+cd $workdir/thirdparty/UTMOS-demo
+$python_command predict.py \
+    --mode predict_meta \
+    --inp_path  $wav_res_ref \
+    --out_path  $out_score_file \

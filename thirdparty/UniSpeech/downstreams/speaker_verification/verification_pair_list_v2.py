@@ -181,6 +181,7 @@ class AttentiveStatsPool(nn.Module):
 
 
 def init_model(model_name, checkpoint=None):
+    
     if model_name == 'unispeech_sat':
         config_path = 'config/unispeech_sat.th'
         model = ECAPA_TDNN_SMALL(feat_dim=1024, feat_type='unispeech_sat', config_path=config_path)
@@ -188,7 +189,7 @@ def init_model(model_name, checkpoint=None):
         config_path = None
         model = ECAPA_TDNN_SMALL(feat_dim=768, feat_type='wavlm_base_plus', config_path=config_path)
     elif model_name == 'wavlm_large':
-        config_path = "/exp/leying.zhang/pretrained_models"
+        config_path = os.path.dirname(checkpoint)
         print("Begin initializing WavLM Large")
         model = ECAPA_TDNN_SMALL(feat_dim=1024, feat_type='wavlm_large', config_path=config_path)
     elif model_name == 'hubert_large':

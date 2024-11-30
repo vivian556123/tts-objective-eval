@@ -1,6 +1,7 @@
 ## Requirements
 To install all dependencies, run 
 ```
+python -m pip install pip==24.0
 pip3 install -r requirements.txt
 ```
 
