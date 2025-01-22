@@ -25,9 +25,8 @@ def cal_mcd(mcd_plain_toolbox, mcd_dtw_toolbox, mcd_dtw_sl_toolbox,  wav1, wav2)
 
 if __name__ == '__main__': 
     parser = argparse.ArgumentParser()
-    parser.add_argument('pair')
+    parser.add_argument('--pair', type=str)
     parser.add_argument('--scores', type=str)
-    parser.add_argument('--mode', default="clean", type=str)
     args = parser.parse_args()
 
     f = open(args.pair)
@@ -37,51 +36,29 @@ if __name__ == '__main__':
     tsv1 = []
     tsv2 = []
     for line in lines:
-        e = line.strip().split('\t')
-        if len(e) == 4:
-            part1, _, _, part2 = line.strip().split('\t')
-        elif len(e) == 3:
-            part1, part2, _ = line.strip().split('\t')
-        else:
-            part1, part2 = line.strip().split('\t')[:2]
-        # print("part1", part1, "part2", part2)
-        tsv1.append(part1)
-        tsv2.append(part2)
-
+        assert len(line.strip().split('\t'))==4, f"Error: Line does not have exactly 4 tab-separated parts: {line}"
+        synthesized_speech, gt_speech, prompt_speech, gt_text = line.strip().split('\t')
+        tsv1.append(synthesized_speech)
+        tsv2.append(gt_speech)
+        
     scores_w = open(args.scores, 'w')
     assert len(tsv1) == len(tsv2)
 
     mcd_plain_toolbox = Calculate_MCD(MCD_mode="plain")
     mcd_dtw_toolbox = Calculate_MCD(MCD_mode="dtw")
-    mcd_dtw_sl_toolbox = Calculate_MCD(MCD_mode="dtw")
+    mcd_dtw_sl_toolbox = Calculate_MCD(MCD_mode="dtw_sl")
     
     plain_mcd_list = []
     dtw_mcd_list = []
     dtw_sl_mcd_list = []
     for t1, t2 in tqdm.tqdm(zip(tsv1, tsv2), total=len(tsv1)):
         t1_path = t1.strip()
-        t2_path = os.path.join(os.path.dirname(t2.strip()), os.path.basename(t1.strip()))
-        if args.mode == "noise":
-            t2_path = os.path.join("/exp/leying.zhang/noise-robust-tts/test-degraded-gt", os.path.basename(t1_path.replace(".wav", "_noise.wav")))
-        elif args.mode == "reverb":
-            t2_path = os.path.join("/exp/leying.zhang/noise-robust-tts/test-degraded-gt", os.path.basename(t1_path.replace(".wav", "_rir.wav")))
-        elif args.mode == "interference":
-            t2_path = os.path.join("/exp/leying.zhang/noise-robust-tts/test-degraded-gt", os.path.basename(t1_path.replace(".wav", "_interferencespk.wav")))
-        elif args.mode == "vctk":
-            t2_path = os.path.join("/exp/leying.zhang/noise-robust-tts/vctk_test/clean_testset_wav", os.path.basename(t1_path))
-        elif args.mode == "vctk-noisy":
-            t2_path = os.path.join("/exp/leying.zhang/noise-robust-tts/vctk_test/noisy_TUT_testset_wav", os.path.basename(t1_path))
-        elif args.mode == "soundstorm":
-            t2_path = os.path.join("/exp/leying.zhang/Fisher-dataset-test/2spk_soundstorm_simu/ground_truth", os.path.basename(t1_path))
-        else: 
-            filename = os.path.basename(t1_path)
-            subdir = filename.split("_")[0]
-            subsubdir = filename.split("_")[1]
-            t2_path = os.path.join("/data/processed/LibriTTS_20ms_16k/textgrid/test-clean", subdir, subsubdir, filename)
-            
+        t2_path = t2.strip()
+        
         if not os.path.exists(t1_path) or not os.path.exists(t2_path):
             print("t1_path", t1_path, "t2_path", t2_path, " in mode ", args.mode, " not exist")
             continue
+        
         try:
             plain_mcd_value, dtw_mcd_value, dtw_sl_mcd_value = cal_mcd(mcd_plain_toolbox, mcd_dtw_toolbox, mcd_dtw_sl_toolbox,  t1_path, t2_path)
         except Exception as e:
@@ -93,6 +70,7 @@ if __name__ == '__main__':
         dtw_mcd_list.append(dtw_mcd_value)
         dtw_sl_mcd_list.append(dtw_sl_mcd_value)
         scores_w.flush()
+        
     scores_w.write(f'MCD calculation mode: {args.mode}\n')
     scores_w.write(f'avg plain mcd score between generated speech and grount truth: {sum(plain_mcd_list)/len(plain_mcd_list)}\n')
     scores_w.write(f'avg dtw mcd score between generated speech and grount truth: {sum(dtw_mcd_list)/len(dtw_mcd_list)}\n')

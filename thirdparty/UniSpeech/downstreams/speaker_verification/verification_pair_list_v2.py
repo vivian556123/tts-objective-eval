@@ -207,10 +207,9 @@ def init_model(model_name, checkpoint=None):
     return model
 
 
-def verification_ly(model_name,  wav1, wav2, use_gpu=True, checkpoint=None, wav1_start_sr=0, wav2_start_sr=0, wav1_end_sr=-1, wav2_end_sr=-1, model=None, wav2_cut_wav1=False, cut_prompt = False, device="cuda:0"):
-
-    assert model_name in MODEL_LIST, 'The model_name should be in {}'.format(MODEL_LIST)
-    model = init_model(model_name, checkpoint) if model is None else model
+def verification_similarity(model,  wav1, wav2, use_gpu=True, checkpoint=None, 
+                            wav1_start_sr=0, wav2_start_sr=0, wav1_end_sr=-1, wav2_end_sr=-1, 
+                            device="cuda:0"):
 
     wav1_path = wav1
     wav1, sr1 = librosa.load(wav1, sr=None, mono=False)
@@ -230,34 +229,20 @@ def verification_ly(model_name,  wav1, wav2, use_gpu=True, checkpoint=None, wav1
     wav1 = resample1(wav1)
     wav2 = resample2(wav2)
     
-    
-    # print(f'origin wav1 sr: {wav1.shape}, wav2 sr: {wav2.shape}')
-    if wav2_cut_wav1:
-        wav2 = wav2[...,wav1.shape[-1]:]
-    elif cut_prompt :
-        length_list = np.load(os.path.join("/exp/leying.zhang/Fisher-dataset-test/2spk_soundstorm_simu/gt_oracle_length",os.path.basename(wav1_path).replace(".wav",".npy")))
-        print(length_list)
-        wav1_first = wav1[...,:int(length_list[0]*16000)]
-        wav1_second = wav1[...,int((length_list[0]+length_list[1])*16000):int((length_list[0]+length_list[1]+length_list[2])*16000)]
-        wav1 = torch.cat([wav1_first,wav1_second],dim=-1)
-    else:
-        wav1 = wav1[...,wav1_start_sr:wav1_end_sr if wav1_end_sr > 0 else wav1.shape[-1]]
-        wav2 = wav2[...,wav2_start_sr:wav2_end_sr if wav2_end_sr > 0 else wav2.shape[-1]]
-    # print(f'cutted wav1 sr: {wav1.shape}, wav2 sr: {wav2.shape}')
+    wav1 = wav1[...,wav1_start_sr:wav1_end_sr if wav1_end_sr > 0 else wav1.shape[-1]]
+    wav2 = wav2[...,wav2_start_sr:wav2_end_sr if wav2_end_sr > 0 else wav2.shape[-1]]
 
     if str(device) != 'cpu':
-        model = model.to(device)
         wav1 = wav1.to(device)
         wav2 = wav2.to(device)
 
-    model.eval()
     with torch.no_grad():
         emb1 = model(wav1)
         emb2 = model(wav2)
 
     sim = F.cosine_similarity(emb1, emb2)
     # print("The similarity score between two audios is {:.4f} (-1.0, 1.0).".format(sim[0].item()))
-    return sim, model
+    return sim
 
 
 def extract_embedding(model_name,  wav1, use_gpu=True, checkpoint=None, wav1_start_sr=0, wav1_end_sr=-1, model=None, device="cuda:0"):
@@ -269,7 +254,6 @@ def extract_embedding(model_name,  wav1, use_gpu=True, checkpoint=None, wav1_sta
     wav1 = torch.from_numpy(wav1).unsqueeze(0).float()
     resample1 = Resample(orig_freq=sr1, new_freq=16000)
     wav1 = resample1(wav1)
-    # print(f'origin wav1 sr: {wav1.shape}, wav2 sr: {wav2.shape}')
     wav1 = wav1[...,wav1_start_sr:wav1_end_sr if wav1_end_sr > 0 else wav1.shape[-1]]
     if str(device) != 'cpu':
         model = model.to(device)
@@ -278,7 +262,6 @@ def extract_embedding(model_name,  wav1, use_gpu=True, checkpoint=None, wav1_sta
     model.eval()
     with torch.no_grad():
         emb1 = model(wav1)
-    # print("The similarity score between two audios is {:.4f} (-1.0, 1.0).".format(sim[0].item()))
     return emb1, model
 
 
@@ -293,11 +276,7 @@ if __name__ == '__main__':
     parser.add_argument('--wav2_start_sr', type=int)
     parser.add_argument('--wav1_end_sr', type=int)
     parser.add_argument('--wav2_end_sr', type=int)
-    parser.add_argument('--wav2_cut_wav1', type=bool, default=False)
     parser.add_argument('--device', default="cuda")
-    parser.add_argument('--libritts_sim_reconstructed', action="store_true")
-    parser.add_argument('--cut_prompt', action="store_true")
-    parser.add_argument('--libritts_24k_gt', action="store_true")
 
     
     
@@ -309,65 +288,46 @@ if __name__ == '__main__':
 
     tsv1 = []
     tsv2 = []
-    print("pair", args.pair)
-    # if "libritts_test.csv" in args.pair:
-    #     sim_reconstructed = True
-    #     print("Noise robust tts task with LibriTTS dataset, calculate reconstructed similarity, compared with prompt after vocoder")
-    # else: 
-    #     sim_reconstructed = False
-    #     print("original similarity, compared with ground truth prompt")
+    
     for line in lines:
-        e = line.strip().split('\t')
-        if len(e) == 4:
-            part1, _, _, part2 = line.strip().split('\t')
-        elif len(e) == 3:
-            part1, part2, _ = line.strip().split('\t')
-        else:
-            part1, part2 = line.strip().split('\t')[:2]
-        # print("part1", part1, "part2", part2)
-        # print(part2, os.path.basename(part2))
-        if args.libritts_sim_reconstructed :
-            part2 = os.path.join("/exp/leying.zhang/noise-robust-tts/test_after_vocoder/clean", os.path.basename(part2))
-            # part2 = part2.replace("prompt_spk1","prompt_spk1_after_vocoder")
-        if args.libritts_24k_gt:
-            part2 = part2.replace("/data/processed/LibriTTS_20ms_16k/textgrid/test-clean","/data/lib/LIBRITTS/LibriTTS/test-clean")
-        tsv1.append(part1)
-        tsv2.append(part2)
+        assert len(line.strip().split('\t'))==4, f"Error: Line does not have exactly 4 tab-separated parts: {line}"
+        synthesized_speech, gt_speech, prompt_speech, gt_text = line.strip().split('\t')
+        
+        tsv1.append(synthesized_speech)
+        tsv2.append(prompt_speech)
 
     scores_w = open(args.scores, 'w')
     assert len(tsv1) == len(tsv2)
 
-    model = None
     score_list = []
+    
+    assert args.model_name in MODEL_LIST, 'The model_name should be in {}'.format(MODEL_LIST)
+    model = init_model(args.model_name, args.checkpoint)
+    model.to(args.device)
+    model.eval()
+
     for t1, t2 in tqdm.tqdm(zip(tsv1, tsv2), total=len(tsv1)):
         t1_path = t1.strip()
         t2_path = t2.strip()
         if not os.path.exists(t1_path) or not os.path.exists(t2_path):
             print("t1_path", t1_path, "t2_path", t2_path, "not exists")
             continue
-        # print("t1_path", t1_path, "t2_path", t2_path)
 
-        sim, model = verification_ly(args.model_name, t1_path, t2_path, use_gpu=True, checkpoint=args.checkpoint, 
+        sim = verification_similarity(model, t1_path, t2_path, use_gpu=True, checkpoint=args.checkpoint, 
                                       wav1_start_sr=args.wav1_start_sr, wav2_start_sr=args.wav2_start_sr, 
                                       wav1_end_sr=args.wav1_end_sr, wav2_end_sr=args.wav2_end_sr, 
-                                      model=model, wav2_cut_wav1=args.wav2_cut_wav1, device=args.device,
-                                      cut_prompt=args.cut_prompt)
-        # except Exception as e:
-        #     print(str(e))
-        #     continue
+                                      device=args.device)
 
         if sim is None:
             continue
-        scores_w.write(f'{t1_path}_{args.wav1_start_sr}_{args.wav1_end_sr}\t{t2_path}_{args.wav2_start_sr}_{args.wav2_end_sr}\t{sim.cpu().item()}\n')
-        # print(f'{t1_path}_{args.wav1_start_sr}_{args.wav1_end_sr}\t{t2_path}_{args.wav2_start_sr}_{args.wav2_end_sr}\t{sim.cpu().item()}')
+        scores_w.write(f'{t1_path}\t{t2_path}\t{sim.cpu().item()}\n')
         score_list.append(sim.cpu().item())
         scores_w.flush()
     scores_w.write(f'avg sim score between generated speech and it\'s corresponding prompt: {sum(score_list)/len(score_list)}')
     exp_path = os.path.dirname(args.scores)
     print(f'{exp_path } avg sim score between generated speech and it\'s corresponding prompt: {sum(score_list)/len(score_list)}')
     scores_w.flush()
-    # print(f'avg score: {round(sum(score_list)/len(score_list), 3)}')
     
     with open(os.path.join(os.path.dirname(args.scores),"total_results"),'a') as total_result:
-        total_result.write(f"SIM: {sum(score_list)/len(score_list)}  reconstructed SIM {args.libritts_sim_reconstructed} cut_prompt {args.cut_prompt} \n")
+        total_result.write(f"SIM: {sum(score_list)/len(score_list)} \n")
 

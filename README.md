@@ -23,9 +23,13 @@ for example /home/leying.zhang/code/noise-robust-tts/LibriTTS-metadata/libritts_
 ## Utilization
 ```
 # WER
-bash cal_wer.sh {the path of the meta file} {the directory of synthesized audio} {language: zh or en}
+bash cal_wer.sh {the path of the meta file} {the directory of synthesized audio} {language: zh or en} {the suffix of the generated speech}
 # SIM
-bash cal_sim.sh {the path of the meta file} {the directory of synthesized audio} {path/wavlm_large_finetune.pth: /exp/leying.zhang/pretrained_models/wavlm_large_finetune.pth }
+bash cal_sim.sh {the path of the meta file} {the directory of synthesized audio} {path/wavlm_large_finetune.pth: /exp/leying.zhang/pretrained_models/wavlm_large_finetune.pth } {the suffix of the generated speech}
 # MCD
-bash cal_mcd.sh {the path of the meta file} {the directory of synthesized audio} {mode: clean}
+bash cal_mcd.sh {the path of the meta file} {the directory of synthesized audio} {mode: clean} {the suffix of the generated speech}
+# PESQ, SISNR, SDR
+bash cal_enh_metrics.sh {the path of the meta file} {the directory of synthesized audio} {mode: clean} {the suffix of the generated speech}
+
+
 ```

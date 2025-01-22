@@ -7,7 +7,6 @@ lang="en"
 generated_wav_suffix=".wav"
 prompt_dir="default_prompt_dir"
 ground_truth_dir="default_ground_truth_dir"
-checkpoint_path="/exp/leying.zhang/pretrained_models/wavlm_large_finetune.pth"
 
 # Parse named arguments
 while [[ $# -gt 0 ]]; do
@@ -33,11 +32,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --prompt_dir)
-      prompt_dir="$2"
-      shift 2
-      ;;
-    --checkpoint_path)
-      checkpoint_path="$2"
+      ground_truth_dir="$2"
       shift 2
       ;;
     *)
@@ -49,20 +44,16 @@ done
 
 # Define file paths based on the arguments
 wav_res_ref="$synthesized_dir/wav_res_ref_text"
-out_score_file="$synthesized_dir/sim_results_score"
+out_score_file="$synthesized_dir/mcd_results_score"
 
 # Get the working directory
-python_command=python
-$python_command get_wav_res_ref_text.py $meta_lst $synthesized_dir $ground_truth_dir $prompt_dir $wav_res_ref $generated_wav_suffix
+workdir=$(cd "$(dirname "$0")"; cd ../; pwd)
 
-workdir=$(cd "$(dirname "$0")"; pwd)
-cd $workdir/thirdparty/UniSpeech/downstreams/speaker_verification/
-$python_command verification_pair_list_v2.py $wav_res_ref \
-    --model_name wavlm_large \
-    --checkpoint $checkpoint_path \
-    --scores $out_score_file \
-    --wav1_start_sr 0 \
-    --wav2_start_sr 0 \
-    --wav1_end_sr -1 \
-    --wav2_end_sr -1 \
-    --device cuda 
+# Define the Python command (modify as needed for your environment)
+# python_command="srun -p a10,4090 --gres=gpu:1 --mem 40G --qos qlong -c 2 python"
+python_command="python"
+
+# Execute the Python scripts with the provided or default arguments
+$python_command get_wav_res_ref_text.py $meta_lst $synthesized_dir $ground_truth_dir $prompt_dir $wav_res_ref $generated_wav_suffix
+$python_command calculate_recons_metrics.py --pair $wav_res_ref  --scores $out_score_file 
+

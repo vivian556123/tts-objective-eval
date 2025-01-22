@@ -11,6 +11,8 @@ import scipy
 import zhconv
 from funasr import AutoModel
 from datasets import load_dataset
+import re
+from num2words import num2words
 
 
 punctuation_all = punctuation + string.punctuation + '.,!?'
@@ -19,6 +21,28 @@ wav_res_text_path = sys.argv[1]
 res_path = sys.argv[2]
 lang = sys.argv[3] # zh or en
 device = "cuda:0"
+
+def normalize_numbers(text):
+    """
+    Convert all numeric strings in the text to their word representations.
+    
+    Args:
+        text (str): Input text to normalize.
+    
+    Returns:
+        str: Text with numbers converted to words.
+    """
+    def convert_match(match):
+        number = match.group(0)
+        try:
+            # Convert number to words (default language is English)
+            return num2words(int(number))
+        except ValueError:
+            return number  # If it's not a valid number, keep it as is.
+
+    # Match numeric patterns and replace with word equivalent
+    normalized_text = re.sub(r'\b\d+\b', convert_match, text)
+    return normalized_text
 
 def load_en_model():
     model_id = "/exp/leying.zhang/WenetSpeech4TTS/whisper-large-v3"
@@ -56,6 +80,8 @@ def process_one(hypo, truth):
     else:
         raise NotImplementedError
 
+    truth = normalize_numbers(truth)
+    hypo = normalize_numbers(hypo)
     measures = compute_measures(truth, hypo)
     ref_list = truth.split(" ")
     wer = measures["wer"]
@@ -78,47 +104,35 @@ def run_asr(wav_res_text_path, res_path):
         lines = f.readlines()
     for line in tqdm(lines):
         line = line.strip()
-        if len(line.split('\t')) == 2:
-            wav_res_path, text_ref = line.split('\t')
-        elif len(line.split('\t')) == 3:
-            wav_res_path, wav_ref_path, text_ref = line.split('\t')
-        elif len(line.split('\t')) == 4: # for edit
-            wav_res_path, _, text_ref, wav_ref_path = line.split('\t')
-        else:
-            raise NotImplementedError
-        # print("wav_res_path",wav_res_path, "text_ref", text_ref)
-        if not os.path.exists(wav_res_path):
-            print("wav_res_path", wav_res_path, "does not exist")
-            continue
-        params.append((wav_res_path, text_ref))
-    fout = open(res_path, "w")
+        assert len(line.split('\t'))==4, f"Error: Line does not have exactly 4 tab-separated parts: {line}"
+        synthesized_speech, gt_speech, prompt_speech, gt_text = line.split('\t')
+        params.append((synthesized_speech, gt_text))
     
+    fout = open(res_path, "w")
     n_higher_than_50 = 0
     wers_below_50 = []
-    for wav_res_path, text_ref in tqdm(params):
+    for synthesized_speech, gt_text in tqdm(params):
         if lang == "en":
-            wav, sr = sf.read(wav_res_path)
+            wav, sr = sf.read(synthesized_speech)
             if sr != 16000:
                 wav = scipy.signal.resample(wav, int(len(wav) * 16000 / sr))
             
             # result = pipe(wav)
-            # print(result["text"])
             input_features = processor(wav, sampling_rate=16000, return_tensors="pt").input_features
             input_features = input_features.to(device)
             # forced_decoder_ids = processor.get_decoder_prompt_ids(language="english", task="transcribe")
             # model.generation_config=forced_decoder_ids
             predicted_ids = model.generate(input_features)
             transcription = processor.batch_decode(predicted_ids, skip_special_tokens=True)[0]
-            # print("transcription", transcription)
-            # print("text_ref", text_ref)
         elif lang == "zh":
-            res = model.generate(input=wav_res_path,
+            res = model.generate(input=synthesized_speech,
                     batch_size_s=300)
             transcription = res[0]["text"]
             transcription = zhconv.convert(transcription, 'zh-cn')
 
-        raw_truth, raw_hypo, wer, subs, dele, inse = process_one(transcription, text_ref)
-        fout.write(f"{wav_res_path}\t{wer}\t{raw_truth}\t{raw_hypo}\t{inse}\t{dele}\t{subs}\n")
+        raw_truth, raw_hypo, wer, subs, dele, inse = process_one(transcription, gt_text)
+
+        fout.write(f"{synthesized_speech}\t{wer}\t{raw_truth}\t{raw_hypo}\t{inse}\t{dele}\t{subs}\n")
         fout.flush()
 
 run_asr(wav_res_text_path, res_path)
