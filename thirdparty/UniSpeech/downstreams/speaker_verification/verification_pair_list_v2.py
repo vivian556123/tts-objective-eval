@@ -181,6 +181,7 @@ class AttentiveStatsPool(nn.Module):
 
 
 def init_model(model_name, checkpoint=None):
+    
     if model_name == 'unispeech_sat':
         config_path = 'config/unispeech_sat.th'
         model = ECAPA_TDNN_SMALL(feat_dim=1024, feat_type='unispeech_sat', config_path=config_path)

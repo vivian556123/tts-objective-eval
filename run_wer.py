@@ -11,8 +11,11 @@ import scipy
 import zhconv
 from funasr import AutoModel
 from datasets import load_dataset
+<<<<<<< HEAD
 import re
 from num2words import num2words
+=======
+>>>>>>> d80f3fbe88ebcbaef2199278842e1ca4162f5737
 
 
 punctuation_all = punctuation + string.punctuation + '.,!?'
@@ -22,6 +25,7 @@ res_path = sys.argv[2]
 lang = sys.argv[3] # zh or en
 device = "cuda:0"
 
+<<<<<<< HEAD
 def normalize_numbers(text):
     """
     Convert all numeric strings in the text to their word representations.
@@ -44,6 +48,8 @@ def normalize_numbers(text):
     normalized_text = re.sub(r'\b\d+\b', convert_match, text)
     return normalized_text
 
+=======
+>>>>>>> d80f3fbe88ebcbaef2199278842e1ca4162f5737
 def load_en_model():
     model_id = "/exp/leying.zhang/WenetSpeech4TTS/whisper-large-v3"
     processor = WhisperProcessor.from_pretrained(model_id)
@@ -80,8 +86,11 @@ def process_one(hypo, truth):
     else:
         raise NotImplementedError
 
+<<<<<<< HEAD
     truth = normalize_numbers(truth)
     hypo = normalize_numbers(hypo)
+=======
+>>>>>>> d80f3fbe88ebcbaef2199278842e1ca4162f5737
     measures = compute_measures(truth, hypo)
     ref_list = truth.split(" ")
     wer = measures["wer"]
@@ -131,7 +140,10 @@ def run_asr(wav_res_text_path, res_path):
             transcription = zhconv.convert(transcription, 'zh-cn')
 
         raw_truth, raw_hypo, wer, subs, dele, inse = process_one(transcription, gt_text)
+<<<<<<< HEAD
 
+=======
+>>>>>>> d80f3fbe88ebcbaef2199278842e1ca4162f5737
         fout.write(f"{synthesized_speech}\t{wer}\t{raw_truth}\t{raw_hypo}\t{inse}\t{dele}\t{subs}\n")
         fout.flush()
 

@@ -3,11 +3,18 @@
 # Set default values if arguments are not provided
 meta_lst="default_meta_lst"
 synthesized_dir="default_synthesized_dir"
+<<<<<<< HEAD
 lang="en"
 generated_wav_suffix=".wav"
 prompt_dir="default_prompt_dir"
 ground_truth_dir="default_ground_truth_dir"
 checkpoint_path="/exp/leying.zhang/pretrained_models/wavlm_large_finetune.pth"
+=======
+generated_wav_suffix=".wav"
+prompt_dir="default_prompt_dir"
+ground_truth_dir="default_ground_truth_dir"
+checkpoint_path="/data/v-leyizhang/pretrained_model/wavlm_large_finetune.pth"
+>>>>>>> d80f3fbe88ebcbaef2199278842e1ca4162f5737
 
 # Parse named arguments
 while [[ $# -gt 0 ]]; do
@@ -20,10 +27,13 @@ while [[ $# -gt 0 ]]; do
       synthesized_dir="$2"
       shift 2
       ;;
+<<<<<<< HEAD
     --lang)
       lang="$2"
       shift 2
       ;;
+=======
+>>>>>>> d80f3fbe88ebcbaef2199278842e1ca4162f5737
     --generated_wav_suffix)
       generated_wav_suffix="$2"
       shift 2

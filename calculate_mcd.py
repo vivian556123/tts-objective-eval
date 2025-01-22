@@ -56,7 +56,11 @@ if __name__ == '__main__':
         t2_path = t2.strip()
         
         if not os.path.exists(t1_path) or not os.path.exists(t2_path):
+<<<<<<< HEAD
             print("t1_path", t1_path, "t2_path", t2_path, " in mode ", args.mode, " not exist")
+=======
+            print("t1_path", t1_path, "t2_path", t2_path, " does not exist")
+>>>>>>> d80f3fbe88ebcbaef2199278842e1ca4162f5737
             continue
         
         try:
@@ -71,7 +75,10 @@ if __name__ == '__main__':
         dtw_sl_mcd_list.append(dtw_sl_mcd_value)
         scores_w.flush()
         
+<<<<<<< HEAD
     scores_w.write(f'MCD calculation mode: {args.mode}\n')
+=======
+>>>>>>> d80f3fbe88ebcbaef2199278842e1ca4162f5737
     scores_w.write(f'avg plain mcd score between generated speech and grount truth: {sum(plain_mcd_list)/len(plain_mcd_list)}\n')
     scores_w.write(f'avg dtw mcd score between generated speech and grount truth: {sum(dtw_mcd_list)/len(dtw_mcd_list)}\n')
     scores_w.write(f'avg dtw sl mcd score between generated speech and grount truth: {sum(dtw_sl_mcd_list)/len(dtw_sl_mcd_list)}\n')
@@ -81,4 +88,9 @@ if __name__ == '__main__':
     scores_w.flush()
     
 with open(os.path.join(os.path.dirname(args.scores),"total_results"),'a') as total_result:
+<<<<<<< HEAD
     total_result.write(f"mode: {args.mode} MCD PLAIN: {sum(plain_mcd_list)/len(plain_mcd_list)} DTW: {sum(dtw_mcd_list)/len(dtw_mcd_list)} DTW_SL: {sum(dtw_sl_mcd_list)/len(dtw_sl_mcd_list)}  \n")
+=======
+    total_result.write(f"Synthesized dir {os.path.dirname(synthesized_speech)}, Ground truth dir {os.path.dirname(gt_speech)}\n")
+    total_result.write(f"MCD PLAIN: {sum(plain_mcd_list)/len(plain_mcd_list)} DTW: {sum(dtw_mcd_list)/len(dtw_mcd_list)} DTW_SL: {sum(dtw_sl_mcd_list)/len(dtw_sl_mcd_list)}  \n")
+>>>>>>> d80f3fbe88ebcbaef2199278842e1ca4162f5737

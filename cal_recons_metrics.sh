@@ -3,7 +3,10 @@
 # Set default values if arguments are not provided
 meta_lst="default_meta_lst"
 synthesized_dir="default_synthesized_dir"
+<<<<<<< HEAD
 lang="en"
+=======
+>>>>>>> d80f3fbe88ebcbaef2199278842e1ca4162f5737
 generated_wav_suffix=".wav"
 prompt_dir="default_prompt_dir"
 ground_truth_dir="default_ground_truth_dir"
@@ -19,10 +22,13 @@ while [[ $# -gt 0 ]]; do
       synthesized_dir="$2"
       shift 2
       ;;
+<<<<<<< HEAD
     --lang)
       lang="$2"
       shift 2
       ;;
+=======
+>>>>>>> d80f3fbe88ebcbaef2199278842e1ca4162f5737
     --generated_wav_suffix)
       generated_wav_suffix="$2"
       shift 2

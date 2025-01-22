@@ -3,13 +3,10 @@
 # Set default values if arguments are not provided
 meta_lst="default_meta_lst"
 synthesized_dir="default_synthesized_dir"
-<<<<<<< HEAD
-lang="en"
-=======
->>>>>>> d80f3fbe88ebcbaef2199278842e1ca4162f5737
 generated_wav_suffix=".wav"
 prompt_dir="default_prompt_dir"
 ground_truth_dir="default_ground_truth_dir"
+checkpoint_path="/exp/leying.zhang/pretrained_models/wavlm_large_finetune.pth"
 
 # Parse named arguments
 while [[ $# -gt 0 ]]; do
@@ -22,13 +19,6 @@ while [[ $# -gt 0 ]]; do
       synthesized_dir="$2"
       shift 2
       ;;
-<<<<<<< HEAD
-    --lang)
-      lang="$2"
-      shift 2
-      ;;
-=======
->>>>>>> d80f3fbe88ebcbaef2199278842e1ca4162f5737
     --generated_wav_suffix)
       generated_wav_suffix="$2"
       shift 2
@@ -38,7 +28,11 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --prompt_dir)
-      ground_truth_dir="$2"
+      prompt_dir="$2"
+      shift 2
+      ;;
+    --checkpoint_path)
+      checkpoint_path="$2"
       shift 2
       ;;
     *)
@@ -50,16 +44,15 @@ done
 
 # Define file paths based on the arguments
 wav_res_ref="$synthesized_dir/wav_res_ref_text"
-out_score_file="$synthesized_dir/mcd_results_score"
+out_score_file="$synthesized_dir/utmos_results_score"
 
 # Get the working directory
-workdir=$(cd "$(dirname "$0")"; cd ../; pwd)
-
-# Define the Python command (modify as needed for your environment)
-# python_command="srun -p a10,4090 --gres=gpu:1 --mem 40G --qos qlong -c 2 python"
-python_command="python"
-
-# Execute the Python scripts with the provided or default arguments
+python_command=python
 $python_command get_wav_res_ref_text.py $meta_lst $synthesized_dir $ground_truth_dir $prompt_dir $wav_res_ref $generated_wav_suffix
-$python_command calculate_mcd.py --pair $wav_res_ref  --scores $out_score_file 
 
+workdir=$(cd "$(dirname "$0")"; pwd)
+cd $workdir/thirdparty/UTMOS-demo
+$python_command predict.py \
+    --mode predict_meta \
+    --inp_path  $wav_res_ref \
+    --out_path  $out_score_file \

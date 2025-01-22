@@ -68,12 +68,17 @@ if __name__ == '__main__':
         t2_path = t2.strip()
         
         if not os.path.exists(t1_path) or not os.path.exists(t2_path):
+<<<<<<< HEAD
             print("t1_path", t1_path, "t2_path", t2_path, " in mode ", args.mode, " not exist")
+=======
+            print("t1_path", t1_path, "t2_path", t2_path, " does  not exist")
+>>>>>>> d80f3fbe88ebcbaef2199278842e1ca4162f5737
             continue
         
 
         test_signal, sr = librosa.load(t1_path, sr = args.target_sr)      # 待评估音频
         ref_signal, sr = librosa.load(t2_path, sr = args.target_sr)  # 参考音频
+<<<<<<< HEAD
 
         pesq = pesq(sr, ref_signal, test_signal, args.pesq_mode)
         estoi = stoi(ref_signal, test_signal, sr, extended=True)
@@ -83,6 +88,27 @@ if __name__ == '__main__':
         pesq_list.append(pesq)
         estoi_list.append(estoi)
         stoi_list.append(stoi)
+=======
+        if len(test_signal) != len(ref_signal):
+            print("Warning: The length of the synthesized speech and the ground truth are not equal")
+            min_len = min(len(test_signal), len(ref_signal))
+            test_signal = test_signal[:min_len]
+            ref_signal = ref_signal[:min_len]
+        
+        try:
+            pesq_score = pesq(sr, ref_signal, test_signal, args.pesq_mode)
+            estoi = stoi(ref_signal, test_signal, sr, extended=True)
+            stoi_score = stoi(ref_signal, test_signal, sr, extended=False)
+        except Exception as e:
+            print(str(e))
+            print("t1_path", t1_path, "t2_path", t2_path, " failed")
+            continue
+        
+        scores_w.write(f'{t1_path}\t{t2_path}\t{pesq_score}\t{estoi}\t{stoi_score}\n')
+        pesq_list.append(pesq_score)
+        estoi_list.append(estoi)
+        stoi_list.append(stoi_score)
+>>>>>>> d80f3fbe88ebcbaef2199278842e1ca4162f5737
         scores_w.flush()
         
     scores_w.write(f'avg PESQ score between generated speech and grount truth in {args.pesq_mode} is : {sum(pesq_list)/len(pesq_list)}\n')
@@ -94,4 +120,9 @@ if __name__ == '__main__':
     scores_w.flush()
     
 with open(os.path.join(os.path.dirname(args.scores),"total_results"),'a') as total_result:
+<<<<<<< HEAD
     total_result.write(f"mode: {args.mode} PESQ: {sum(pesq_list)/len(pesq_list)} ESTOI: {sum(estoi_list)/len(estoi_list)} STOI: {sum(stoi_list)/len(stoi_list)}  \n")
+=======
+    total_result.write(f"Synthesized dir {os.path.dirname(synthesized_speech)}, Ground truth dir {os.path.dirname(gt_speech)}\n")
+    total_result.write(f"PESQ: {sum(pesq_list)/len(pesq_list)} ESTOI: {sum(estoi_list)/len(estoi_list)} STOI: {sum(stoi_list)/len(stoi_list)}  \n")
+>>>>>>> d80f3fbe88ebcbaef2199278842e1ca4162f5737
